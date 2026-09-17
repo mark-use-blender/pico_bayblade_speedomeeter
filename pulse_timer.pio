@@ -1,0 +1,62 @@
+.program pulse_timer
+
+; state machine at 2 MHz.
+
+.wrap_target
+    ; Wait for the first rising edge, then time the next rising edge.
+    mov x, ~osr
+    jmp pin wait_low 
+wait_high:
+    jmp pin count_high
+    jmp wait_high
+count_high:
+    jmp pin cont
+    jmp pulse_detected
+cont:
+    jmp x-- count_high
+    jmp pulse_detected
+
+wait_low:
+    jmp pin wait_low
+    jmp count_low
+count_low:
+    jmp pin pulse_detected
+    jmp x-- count_low
+    
+pulse_detected:
+    mov y, ~x               ; Invert X 
+    in y, 32                ; load Input Shift Register (ISR)
+    push noblock            ; Force push FIFO 
+.wrap
+
+% c-sdk {
+// initialize the PIO state machine
+static inline void pulse_timer_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config c = pulse_timer_program_get_default_config(offset);
+
+    // Map the physical sensor pin
+    sm_config_set_jmp_pin(&c, pin);
+
+    // Set the GPIO function matrix
+    pio_gpio_init(pio, pin);
+    gpio_pull_up(pin);
+    
+    // set input mode
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+
+    // Configure ISR
+    // Shift left = false, Auto-push = false
+    sm_config_set_in_shift(&c, false, false, 32);
+
+    // join FIFO 
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+
+    // Calculate the clock divider at 2 MHz
+    float div = (float)clock_get_hz(clk_sys) / 2000000.f;
+    sm_config_set_clkdiv(&c, div);
+
+    // Load configurations
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

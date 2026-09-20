@@ -34,6 +34,7 @@ bool stup = 0;
 bool bouncec =0;
 bool bouncel =0;
 bool bouncer =0;
+bool debumode = 1;
 volatile uint32_t calculatedRPM =5;
 volatile uint32_t lastPulseCount =0;
 static uint32_t pulseHistory[PULSE_HISTORY_SIZE];
@@ -2919,7 +2920,7 @@ void cre1()
     if(DEV_Module_Init()!=0){
         return;
     }
-    DEV_SET_PWM(50);
+    DEV_SET_PWM(25);
     LCD_1IN3_Init(HORIZONTAL);
     LCD_1IN3_Clear(WHITE);
     UDOUBLE Imagesize = LCD_1IN3_HEIGHT*LCD_1IN3_WIDTH*2;
@@ -2927,10 +2928,10 @@ void cre1()
     if((BlackImage = (UWORD *)malloc(Imagesize)) == NULL) {
         exit(0);
     }
-    Paint_NewImage((UBYTE *)BlackImage,LCD_1IN3.WIDTH,LCD_1IN3.HEIGHT, 180, WHITE);
+    Paint_NewImage((UBYTE *)BlackImage,LCD_1IN3.WIDTH,LCD_1IN3.HEIGHT, 0, WHITE);
     Paint_SetScale(65);
     Paint_Clear(WHITE);
-    Paint_SetRotate(ROTATE_180);
+    Paint_SetRotate(ROTATE_0);
     Paint_Clear(WHITE);
 /*
 up=14
@@ -2940,16 +2941,26 @@ right=21
 ctrl=15
 */
 
-    uint16_t up = 20;
-	uint16_t down = 14;
-	uint16_t left = 21;
-	uint16_t right = 16;
-	uint16_t ctrl = 15;
+    uint16_t up = 2;
+	uint16_t down = 18;
+	uint16_t left = 16;
+	uint16_t right = 20;
+	uint16_t ctrl = 3;
+    uint16_t Abt = 15;
+    uint16_t Bbt = 17;
+    uint16_t Xbt = 19;
+    uint16_t Ybt = 21;
+
+
 	DEV_KEY_Config(up);
     DEV_KEY_Config(down);
     DEV_KEY_Config(left);
     DEV_KEY_Config(right);
     DEV_KEY_Config(ctrl);
+    DEV_KEY_Config(Abt);
+    DEV_KEY_Config(Bbt);
+    DEV_KEY_Config(Xbt);
+    DEV_KEY_Config(Ybt);
 
     Paint_Clear(WHITE);
     while(true)
@@ -2961,40 +2972,23 @@ ctrl=15
         // Paint_DrawRectangle(105, 165, 136, 195, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
         // Paint_DrawRectangle(60, 165, 91, 195, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
         Paint_DrawNum(0,0,calculatedRPM,&Font20,0, 0x000f, 0xfff0);
-        Paint_DrawString_EN(0,25,"PIN",&Font12,0x000f,0xfff0);
-        Paint_DrawNum(35,25,gpio_get(SPEED_SENSOR_PIN),&Font12,0,0x000f,0xfff0);
-        Paint_DrawString_EN(0,40,"CNT",&Font12,0x000f,0xfff0);
-        Paint_DrawNum(35,40,lastPulseCount,&Font12,0,0x000f,0xfff0);
-        Paint_DrawImage(gImage_mark,110,0,150,150);
-
+        if(debumode){
+            Paint_DrawString_EN(0,25,"PIN",&Font12,0x000f,0xfff0);
+            Paint_DrawNum(35,25,gpio_get(SPEED_SENSOR_PIN),&Font12,0,0x000f,0xfff0);
+            Paint_DrawString_EN(0,40,"CNT",&Font12,0x000f,0xfff0);
+            Paint_DrawNum(35,40,lastPulseCount,&Font12,0,0x000f,0xfff0);
+            Paint_DrawImage(gImage_mark,110,0,150,150);
+        }
+        
+        //DEV_Digital_Read(up)
         if (enable) Paint_DrawRectangle(90, 0, 110, 20, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
         else
         {
             if(DEV_Digital_Read(up ) == 0){
 
-                DEV_Delay_ms(100);
             }
-            if(DEV_Digital_Read(down ) == 0){
-
-                DEV_Delay_ms(100);
-            }
-            if(DEV_Digital_Read(left ) == 0){
-                if (!bouncel);
-                bouncel=1;
-            }
-            else bouncel=0;
-            if(DEV_Digital_Read(right ) == 0){
-                if (!bouncer);
-                bouncer=1;
-            }
-            else bouncer=0;
         }
-        if(DEV_Digital_Read(ctrl ) == 0){
-            Paint_DrawRectangle(60, 165, 90, 195, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
-            if (!bouncec)enable = !enable;
-            bouncec=1;
-        }
-        else bouncec=0;
+        
         LCD_1IN3_Display(BlackImage);
     }
 }
